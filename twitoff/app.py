@@ -1,6 +1,8 @@
 from re import DEBUG
 from flask import Flask, render_template
 from .models import DB, User, Tweet
+from .twitter import update_all_users, add_or_update_user
+
 
 def create_app():
 
@@ -56,7 +58,13 @@ def create_app():
         <a href='/'>Go to Home</a>
         <a href='/reset'>Go to reset</a>
         <a href='/populate'>Go to populate</a>'''
-
+    
+    @app.route('/update')
+    def update():
+        '''updates all users'''
+        usernames = update_all_users()
+        for username in usernames:
+            add_or_update_user(username)
 
     # return our app object after attaching the routes to it.
     return app

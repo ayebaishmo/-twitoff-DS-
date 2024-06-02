@@ -3,6 +3,16 @@ import not_tweepy as tweepy
 import spacy
 from .models import DB, Tweet, User
 
+
+
+# Get API Key from environment vars.
+key = getenv('TWITTER_API_KEY')
+secret = getenv('TWITTER_API_KEY_SECRET')
+
+# Connect to the Twitter API
+TWITTER_AUTH = tweepy.OAuthHandler(key, secret)
+TWITTER = tweepy.API(TWITTER_AUTH)
+
 # Load our pretrained SpaCy Word Embeddings model
 nlp = spacy.load('my_model/')
 

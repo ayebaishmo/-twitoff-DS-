@@ -7,6 +7,8 @@ name = "pypi"
 flask="*"
 jinja2="*"
 flask-sqlalchemy="*"
+spacy = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

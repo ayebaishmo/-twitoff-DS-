@@ -3,8 +3,6 @@ import not_tweepy as tweepy
 import spacy
 from .models import DB, Tweet, User
 
-
-
 # Get API Key from environment vars.
 key = getenv('TWITTER_API_KEY')
 secret = getenv('TWITTER_API_KEY_SECRET')
@@ -22,54 +20,39 @@ def vectorize_tweets(tweet_text):
 
 def add_or_update_user(username):
     """
-    Gets twitter user and tweets from twitter DB
+    Gets twitter user and tweets from Twitter.
     Gets user by "username" parameter.
     """
     try:
-        # gets back twitter user object
-        twitter_user = TWITTER.get_user(username)
+        # gets back Twitter user object
+        twitter_user = TWITTER.get_user(screen_name=username)
+        
         # Either updates or adds user to our DB
-        db_user = (User.query.get(twitter_user.id)) or User(
-            id=twitter_user.id, name=username)
-        DB.session.add(db_user)  # Add user if don't exist
+        db_user = User.query.filter_by(username=username).first()
+        if db_user is None:
+            db_user = User(username=username)
+            DB.session.add(db_user)
+        
+        # Update the newest_tweet_id if needed
+        if db_user.newest_tweet_id is None:
+            db_user.newest_tweet_id = twitter_user.status.id
+        elif db_user.newest_tweet_id < twitter_user.status.id:
+            db_user.newest_tweet_id = twitter_user.status.id
 
-        # Grabbing tweets from "twitter_user"
-        tweets = twitter_user.timeline(
-            count=200,
-            exclude_replies=True,
-            include_rts=False,
-            tweet_mode="extended",
-            since_id=db_user.newest_tweet_id
-        )
-
-        # check to see if the newest tweet in the DB is equal to the newest tweet from the Twitter API, if they're not equal then that means that the user has posted new tweets that we should add to our DB. 
-        if tweets:
-            db_user.newest_tweet_id = tweets[0].id
-
-        # tweets is a list of tweet objects
-        for tweet in tweets:
-            # type(tweet) == object
-            # Turn each tweet into a word embedding. (vectorization)
-            tweet_vector = vectorize_tweets(tweet.text)
-            db_tweet = Tweet(
-                id=tweet.id,
-                text=tweet.text,
-                vect=tweet_vector
-            )
-            db_user.tweets.append(db_tweet)
-            DB.session.add(db_tweet)
-
-    except Exception as e:
-        print("Error processing {}: {}".format(username, e))
-        raise e
-
-    else:
         DB.session.commit()
 
+    except Exception as e:
+        print(f"Error processing {username}: {e}")
+        raise e
+
 def update_all_users():
-    usernames = []
-    Users = User.query.all()
-    for user in Users:
-        usernames.append(user.username)
-    
-    return usernames
+    """
+    Updates all users in the database.
+    """
+    try:
+        users = User.query.all()
+        for user in users:
+            add_or_update_user(user.username)
+    except Exception as e:
+        print(f"Error updating users: {e}")
+        raise e
